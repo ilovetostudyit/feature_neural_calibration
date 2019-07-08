@@ -28,6 +28,19 @@ def gauss(A):
     return A
 
 def calc_from_cam_to_map_matrix(cam_real_coords, map_real_coords):
+    N_MARKERS = len(cam_real_coords)
+
+    cam_real_coords = np.float32(cam_real_coords)
+    map_real_coords = np.float32(map_real_coords)
+
+    cam_real_coords = np.dot(np.linalg.inv(newmat), np.vstack([cam_real_coords.T, np.ones((1, N_MARKERS))])).T 
+
+    map_real_coords = np.hstack([map_real_coords, np.ones((N_MARKERS, 1))]).T
+    cam_real_coords = np.hstack([cam_real_coords, np.ones((N_MARKERS, 1))]).T
+
+    print(map_real_coords.shape)
+    print(cam_real_coords.shape)
+
     #use ray match data as linear equations
     A1 = np.zeros((N_MARKERS * 2, 4))
     A2 = np.zeros((N_MARKERS * 2, 4))
@@ -45,16 +58,16 @@ def calc_from_cam_to_map_matrix(cam_real_coords, map_real_coords):
     A123 = np.hstack([A1, A2, A3])
 
     # simplify system
-    Ag = utils.gauss(A123)
-    # np.set_printoptions(2, suppress=True)
-    # print(Ag)
+    Ag = gauss(A123)
+    np.set_printoptions(2, suppress=True)
+    print(Ag)
 
     # system needs 4 more equations
 
     # 2 we take from orthogonality of matrix
     Ag = np.vstack([Ag, [0, 0, Ag[0, -1], 0, 0, 0, Ag[3, -1], 0, 0, 0, Ag[6, -1], 0]])
     Ag = np.vstack([Ag, [0, 0, Ag[1, -1], 0, 0, 0, Ag[4, -1], 0, 0, 0, Ag[7, -1], 0]])
-    Ag = utils.gauss(Ag)
+    Ag = gauss(Ag)
 
     # 1 more from orthogonality
     a23_33 = -np.dot(Ag[4:6, -1], Ag[8:10, -1])
@@ -62,7 +75,7 @@ def calc_from_cam_to_map_matrix(cam_real_coords, map_real_coords):
     a33a = np.sqrt(a23_33 / a23)
 
     Ag = np.vstack([Ag, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, a33a]])
-    Ag = utils.gauss(Ag)
+    Ag = gauss(Ag)
     #print(Ag)
 
     # and 1 more from normality
@@ -72,7 +85,7 @@ def calc_from_cam_to_map_matrix(cam_real_coords, map_real_coords):
 
     Ag = np.hstack([Ag, np.zeros((11, 1))])
     Ag = np.vstack([Ag, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, a]])
-    Ag = utils.gauss(Ag)
+    Ag = gauss(Ag)
     #print(Ag)
 
     # system is solved, we can gather matrix elements
