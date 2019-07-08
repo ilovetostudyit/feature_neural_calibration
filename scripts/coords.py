@@ -1,4 +1,13 @@
 reference_mapping = {
+    0: "table_left_0",
+    3: "table_left_3",
+    10: "big_left_0",
+    11: "big_left_center_right",
+    14: "scales_left_bottom_left",
+    18: "scales_right_bottom_right",
+    21: "big_right_center_left",
+    22: "big_right_6",
+    24: "table_right_4"
 }
 
 map_points = {
