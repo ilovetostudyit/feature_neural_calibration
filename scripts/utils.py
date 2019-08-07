@@ -44,67 +44,6 @@ def gauss(A, stop_j=None, stop_i=None, start_i=0, start_j=0, eps=1e-6):
     return A
 
 
-def grey_world(nimg):
-    nimg = nimg.transpose(2, 0, 1).astype(np.uint32)
-    mu_g = np.average(nimg[1])
-    nimg[0] = np.minimum(nimg[0] * (mu_g / np.average(nimg[0])), 255)
-    nimg[2] = np.minimum(nimg[2] * (mu_g / np.average(nimg[2])), 255)
-    return nimg.transpose(1, 2, 0).astype(np.uint8)
-
-
-def Sobel_1_color(gray):
-    ddepth = cv.CV_16S
-    mix = 0.5
-
-    grad_x = cv.Sobel(gray, ddepth=ddepth, dx=1, dy=0)
-    grad_y = cv.Sobel(gray, ddepth=ddepth, dx=0, dy=1)
-    grad_x_abs = cv.convertScaleAbs(grad_x)
-    grad_y_abs = cv.convertScaleAbs(grad_y)
-
-    grad = cv.addWeighted(grad_x_abs, mix, grad_y_abs, mix, 0)
-
-    return grad
-
-
-def Sobel_3_colors(img):
-    b, g, r = cv.split(img)
-    mix = 0.7
-
-    grad_r = Sobel_1_color(r)
-    grad_g = Sobel_1_color(g)
-    grad_b = Sobel_1_color(b)
-
-    grad = cv.addWeighted(grad_r, mix, grad_g, mix, 0)
-    grad = cv.addWeighted(grad, 2 * mix, grad_b, mix, 0)
-
-    return grad
-
-
-def read_calib_params():
-    global camera_matrix
-    global distCoeffs
-    global newmat
-
-    yamlstr = open(os.path.join(os.path.dirname(__file__), "../params/camera_calibration.yml"), "rt").read()
-    calibr_params = yaml.load(yamlstr)
-    camera_matrix = calibr_params["camera_matrix"]["data"]
-    camera_matrix = np.float32(camera_matrix)
-    camera_matrix = np.reshape(camera_matrix, (3, 3))
-
-    distCoeffs = calibr_params["distortion_coefficients"]["data"]
-    distCoeffs = np.float32(distCoeffs)
-    distCoeffs = np.reshape(distCoeffs, (5,))
-
-    h, w = 960, 1280
-    newmat, roi = cv.getOptimalNewCameraMatrix(camera_matrix, distCoeffs, (w, h), 0.3, (w, h), 1)
-
-
-def correct_distortion(img):
-    if not 'camera_matrix' in globals():
-        read_calib_params()
-    return cv.undistort(img, camera_matrix, distCoeffs, None, newmat)
-
-
 def find_in_big(small, big):
     small_rpt = np.repeat([small], len(big), axis=0)
     big_rpt = np.repeat([big], len(small), axis=0)
@@ -131,13 +70,13 @@ def find_in_big(small, big):
     return indices, mses
 
 
-def calc_from_cam_to_map_matrix(cam_real_coords, map_real_coords):
+def calc_from_cam_to_map_matrix(cam_real_coords, map_real_coords, newmat):
     N_MARKERS = len(cam_real_coords)
 
     cam_real_coords = np.float32(cam_real_coords)
     map_real_coords = np.float32(map_real_coords)
 
-    # cam_real_coords = np.dot(np.linalg.inv(newmat), np.vstack([cam_real_coords.T, np.ones((1, N_MARKERS))])).T
+    cam_real_coords = np.dot(np.linalg.inv(newmat), np.vstack([cam_real_coords.T, np.ones((1, N_MARKERS))])).T
 
     map_real_coords = np.hstack([map_real_coords, np.ones((N_MARKERS, 1))]).T
     cam_real_coords = np.hstack([cam_real_coords, np.ones((N_MARKERS, 1))]).T
@@ -230,12 +169,17 @@ def calc_from_cam_to_map_matrix(cam_real_coords, map_real_coords):
     M = np.linalg.inv(np.vstack([M, [0, 0, 0, 1]]))[:3]
     return M
 
-def calc_from_cam_to_map_matrix_not_bullshit(cam_pos, cam_pts, map_pts):
+def calc_from_cam_to_map_matrix_not_bullshit(cam_pos, cam_pts, map_pts, newmat):
     cam_pos = np.float32(cam_pos)
     if len(cam_pos.shape) == 1:
         cam_pos = np.float32([cam_pos]).T
     else:
         cam_pos  = cam_pos.T
+
+    N_MARKERS = min(len(cam_pts), len(map_pts))
+
+    cam_pts = np.float32(cam_pts)
+    cam_pts = np.dot(np.linalg.inv(newmat), np.vstack([cam_pts.T, np.ones((1, N_MARKERS))])).T
 
     cam_pts = np.float32(cam_pts).T
     map_pts = np.float32(map_pts).T
@@ -301,6 +245,8 @@ if __name__ == '__main__':
     M_1 = np.linalg.inv(np.vstack([M, [0,0,0,1]]))[:3]
 
     print(M)
+
+
 
     points_map = np.random.normal(loc=0, size=(N_POINTS, 3))
     # points_map[:,1] = 0
