@@ -8,7 +8,9 @@ import glob
 import time
 import json
 
-from utils import calc_from_cam_to_map_matrix, grey_world, Sobel_3_colors, read_calib_params, correct_distortion
+from utils import calc_from_cam_to_map_matrix
+from processing import grey_world, Sobel_3_colors, correct_distortion, preprocess, sift
+import processing
 import utils
 import coords
 
@@ -20,15 +22,9 @@ with open("keypoints.json", "rt") as kpfile:
     points_good = json.load(kpfile)
 des_good = list(map(lambda x: x["desc"], points_good))
 
-def preprocess(img):
-    img = grey_world(img)
-    img = correct_distortion(img)
-    return img
-
-sift = cv.xfeatures2d.SIFT_create(contrastThreshold=0.007, edgeThreshold=2)
-
 for file in glob.glob("../test_images/*.jpg") + ["../test_images/test_img.png"] + ["../test_images/Image.png"]:
     img = cv.imread(file)
+
     img = preprocess(img)
 
     kp, des = sift.detectAndCompute(img, None)
@@ -36,6 +32,7 @@ for file in glob.glob("../test_images/*.jpg") + ["../test_images/test_img.png"] 
 
     indices, diffs = utils.find_in_big(des_good, des)
 
+    img = cv.drawKeypoints(img, kp, img, flags=cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
     kpts = []#list(map(lambda i, d: kp[i] if d < MAX_DESC_MSE else None, indices, diffs))
     for i in range(len(indices)):
         ind = indices[i]
@@ -45,8 +42,6 @@ for file in glob.glob("../test_images/*.jpg") + ["../test_images/test_img.png"] 
             continue
         kpts.append(kp[ind])
 
-
-    #img = cv.drawKeypoints(img, kpts, img, flags=cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
     for i in range(len(kpts)):
         kpt = kpts[i]
         if kpt is None:
@@ -67,7 +62,7 @@ for file in glob.glob("../test_images/*.jpg") + ["../test_images/test_img.png"] 
     print(points)
     print(points_real)
     if len(points) >= 4:
-        Mat = calc_from_cam_to_map_matrix(points[:4], points_real[:4])
+        Mat = calc_from_cam_to_map_matrix(points, points_real, processing.newmat)
         print(Mat)
 
     cv.imshow("Img", img)

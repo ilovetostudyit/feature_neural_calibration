@@ -8,25 +8,20 @@ import glob
 import time
 import json
 
-from utils import calc_from_cam_to_map_matrix, grey_world, Sobel_3_colors, read_calib_params, correct_distortion
+from utils import calc_from_cam_to_map_matrix 
+from processing import grey_world, Sobel_3_colors, read_calib_params, correct_distortion, preprocess, sift
 import utils
 
 
 #img = cv.imread("../test_images/test_img.png")
-#img = cv.imread("../test_images/2019-03-02-151346.jpg")
-img = cv.imread("../test_images/Image.png")
+img = cv.imread("../test_images/2019-03-02-151138.jpg")
+#img = cv.imread("../test_images/Image.png")
 
 MAX_DESC_MSE = 0.007
 MIN_QUALITY = 0.0
 
-
-def preprocess(img):
-    img = grey_world(img)
-    return img
-
 img = preprocess(img)
 
-sift = cv.xfeatures2d.SIFT_create(contrastThreshold=0.007, edgeThreshold=2)
 kp, des = sift.detectAndCompute(img, None)
 kpdes = list(zip(kp, des))
 kpdes = list(filter(lambda k: k[0].response >= MIN_QUALITY, kpdes))
