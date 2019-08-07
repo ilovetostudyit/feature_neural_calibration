@@ -9,10 +9,9 @@ import cv2 as cv
 sift = cv.xfeatures2d.SIFT_create()
 
 
-
 def preprocess(img):
     img = grey_world(img)
-    img = correct_distortion(img)
+    #img = correct_distortion(img)
     img = cv.GaussianBlur(img, (11, 11), 0)
     return img
 
@@ -76,3 +75,4 @@ def Sobel_3_colors(img):
 
 
 
+read_calib_params()

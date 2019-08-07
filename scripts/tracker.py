@@ -32,7 +32,7 @@ for file in glob.glob("../test_images/*.jpg") + ["../test_images/test_img.png"] 
 
     indices, diffs = utils.find_in_big(des_good, des)
 
-    img = cv.drawKeypoints(img, kp, img, flags=cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    #img = cv.drawKeypoints(img, kp, img, flags=cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
     kpts = []#list(map(lambda i, d: kp[i] if d < MAX_DESC_MSE else None, indices, diffs))
     for i in range(len(indices)):
         ind = indices[i]
@@ -57,13 +57,23 @@ for file in glob.glob("../test_images/*.jpg") + ["../test_images/test_img.png"] 
         if kpt is None:
             continue
         points.append(kpt.pt)
-        points_real.append(coords.map_points[coords.reference_mapping[i]])
+        point = coords.reference_mapping[i]
+        points_real.append(point)
 
-    print(points)
-    print(points_real)
-    if len(points) >= 4:
-        Mat = calc_from_cam_to_map_matrix(points, points_real, processing.newmat)
-        print(Mat)
+    if len(points) >= 6:
+        #Mat = utils.calc_from_cam_to_map_matrix_not_bullshit([1.5, 2, 1], points, points_real, processing.newmat)
+
+        ret, rvec, tvec = cv.solvePnP(np.float32(points_real), np.float32(points), processing.camera_matrix, processing.distCoeffs)
+        
+        R = cv.Rodrigues(rvec)[0]
+
+        A = np.hstack([R, tvec])
+        
+        A = np.vstack([A, [0, 0, 0, 1]])
+        A = np.linalg.inv(A)[:3]
+
+        np.set_printoptions(3, suppress=True)
+        print(A)
 
     cv.imshow("Img", img)
     if cv.waitKey() == ord('q'):
