@@ -41,3 +41,13 @@ def display(image, width=70, height=None):
     sys.stdout.write("\033c")
     sys.stdout.write(text)
     sys.stdout.flush()
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: ./termimg.py <filename>")
+        exit()
+        
+    filename = sys.argv[1]
+    img = cv.imread(filename)
+    display(img)
+    
